@@ -3,13 +3,17 @@
 CRITICAL_UPTIME_BOUNDARY=3600 # 1 hour
 WARNING_UPTIME_BOUNDARY=86400 # 1 day
 
+# Two setups just now - old setups have /var/vm
+# and don't use .vm.xeriom.net in the VM name.
 if [ -d /var/vm ]; then
   VM=`echo $1 |sed 's/\.vm\.xeriom\.net//'`
 else
   VM=$1
 fi
 
+# Get all data from Xen about $VM
 REPORT=`/usr/bin/sudo /usr/sbin/xm list --long $VM 2>/dev/null`
+# Make sure it didn't fail.
 if [ "0" != "$?" ]; then
   echo "UPTIME UNKNOWN: Couldn't access data from Xen"
   exit 3
@@ -17,10 +21,14 @@ elif [ -z "$REPORT" ]; then
   echo "UPTIME UNKNOWN: Xen didn't return any data"
 fi
 
+# Find out how many seconds from the epoch the VM started at.
 START_TIME=`echo $REPORT | sed 's/.*start_time \([0-9]\+\).*/\1/g'`
+# How many seconds has it been since the epoch?
 NOW=`date +%s`
+# The uptime in seconds is the difference.
 UPTIME=$((NOW - START_TIME))
 
+# Make sure the uptime is acceptable.
 if [ $UPTIME -lt $CRITICAL_UPTIME_BOUNDARY ]; then
   echo "UPTIME CRITICAL: UP for ${UPTIME}s"
   echo "Considered critical until ${CRITICAL_UPTIME_BOUNDARY}s"
