@@ -1,0 +1,38 @@
+#! /bin/bash
+
+# Add this to your sudoers file:
+#   /usr/sbin/xm list --long [a-z0-9\-\.]+
+
+CRITICAL_UPTIME_BOUNDARY=3600 # 1 hour
+WARNING_UPTIME_BOUNDARY=86400 # 1 day
+
+if [ -d /var/vm ]; then
+  VM=`echo $1 |sed 's/\.vm\.xeriom\.net//'`
+else
+  VM=$1
+fi
+
+REPORT=`/usr/bin/sudo /usr/sbin/xm list --long $VM 2>/dev/null`
+if [ "0" != "$?" ]; then
+  echo "UPTIME UNKNOWN: Couldn't access data from Xen"
+  exit 3
+elif [ -z "$REPORT" ]; then
+  echo "UPTIME UNKNOWN: Xen didn't return any data"
+fi
+
+START_TIME=`echo $REPORT | sed 's/.*start_time \([0-9]\+\).*/\1/g'`
+NOW=`date +%s`
+UPTIME=$((NOW - START_TIME))
+
+if [ $UPTIME -lt $CRITICAL_UPTIME_BOUNDARY ]; then
+  echo "UPTIME CRITICAL: UP for ${UPTIME}s"
+  echo "Considered critical until ${CRITICAL_UPTIME_BOUNDARY}s"
+  exit 2
+elif [ $UPTIME -lt $WARNING_UPTIME_BOUNDARY ]; then
+  echo "UPTIME WARNING: UP for ${UPTIME}s"
+  echo "Considered warning until ${WARNING_UPTIME_BOUNDARY}s"
+  exit 1
+else
+  echo "UPTIME OKAY: Up for ${UPTIME}s"
+  exit 0
+fi
