@@ -1,0 +1,33 @@
+#! /bin/bash
+
+echo "[RSnapshot]: Discovering hosts." | /usr/local/sbin/irccat
+
+/usr/local/sbin/print_rsnapshot_configuration > ~/xeriom_rsnapshot.tmp
+
+echo "[RSnapshot]: Refreshing configuration." | /usr/local/sbin/irccat
+
+for CONFIG in `grep '# SOURCE' ~/xeriom_rsnapshot.tmp | cut -f 2`; do
+  HOST=`basename $CONFIG .conf`
+  BACKUP_LOCATIONS=`( 
+ssh -i ~/.ssh/backup_configuration -p 22344 -l root $HOST cat /etc/backup.conf 2>/dev/null 
+) || echo ""`
+  echo "" >> ~/xeriom_rsnapshot.tmp
+  echo "# BEGIN ${HOST}" >> ~/xeriom_rsnapshot.tmp
+  for LOCATION in $BACKUP_LOCATIONS; do
+    echo "backup	root@${HOST}:${LOCATION}	$HOST"
+  done >> ~/xeriom_rsnapshot.tmp
+  echo "# END ${HOST}" >> ~/xeriom_rsnapshot.tmp
+done
+grep -v '# SOURCE' ~/xeriom_rsnapshot.tmp > ~/xeriom_rsnapshot.proposed
+
+NEW_MD5=`md5sum ~/xeriom_rsnapshot.proposed |cut -f 1 -d ' '`
+OLD_MD5=`md5sum /etc/rsnapshot.conf |cut -f 1 -d ' '`
+
+if [ "x${OLD_MD5}" != "x${NEW_MD5}" ]; then
+  mv ~/xeriom_rsnapshot.proposed /etc/rsnapshot.conf
+  echo "[RSnapshot]: Configuration changed, will be used at next snapshot." | /usr/local/sbin/irccat
+else
+  rm ~/xeriom_rsnapshot.proposed
+  echo "[RSnapshot]: Configuration unchanged." | /usr/local/sbin/irccat
+fi
+rm ~/xeriom_rsnapshot.tmp

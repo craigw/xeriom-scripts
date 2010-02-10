@@ -1,0 +1,20 @@
+#! /bin/bash
+
+echo "[NFS]: Refreshing configuration." | /usr/local/sbin/irccat
+
+/usr/local/sbin/print_nfs_export_configuration > ~/xeriom_nfs.tmp
+
+NEW_MD5=`md5sum ~/xeriom_nfs.tmp |cut -f 1 -d ' '`
+OLD_MD5=`md5sum /etc/exports |cut -f 1 -d ' '`
+
+if [ "x${OLD_MD5}" != "x${NEW_MD5}" ]; then
+  # There's been an update so copy the new config to the right place.
+  mv ~/xeriom_nfs.tmp /etc/exports
+  # Make NFS notice the changes.
+  echo "[NFS]: Configuration changed, refreshing exports." | /usr/local/sbin/irccat
+  exportfs -a
+  echo "[NFS]: Refreshed exports. Open file handles may now be stale." | /usr/local/sbin/irccat
+else
+  echo "[NFS]: Configuration unchanged." | /usr/local/sbin/irccat
+  rm ~/xeriom_nfs.tmp
+fi

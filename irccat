@@ -1,0 +1,8 @@
+#! /usr/bin/env ruby
+
+require 'socket'
+
+message = "#xeriom #{STDIN.read}"
+socket = TCPSocket.new('monitor.xeriom.net', 12345)
+socket.send(message, 0)
+socket.close

@@ -1,0 +1,3 @@
+#! /bin/bash
+
+ssh control.xeriom.net -p 2202 -l control -i ~/.ssh/backup_configuration "/usr/bin/env RAILS_ENV=production ruby /var/www/xit.xeriom.net/current/script/rsnapshot/print_configuration"

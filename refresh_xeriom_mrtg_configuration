@@ -1,0 +1,23 @@
+#! /bin/bash
+
+echo "[MRTG]: Refreshing configuration." | /usr/local/sbin/irccat
+
+/usr/local/sbin/print_xeriom_mrtg_configuration > ~/xeriom_mrtg.tmp
+
+NEW_MD5=`md5sum ~/xeriom_mrtg.tmp |cut -f 1 -d ' '`
+OLD_MD5=`md5sum /etc/mrtg.d/virtual-machines.cfg |cut -f 1 -d ' '`
+
+if [ "x${OLD_MD5}" != "x${NEW_MD5}" ]; then
+  echo "[MRTG]: Configuration changed, regenerating index." | /usr/local/sbin/irccat
+  mv ~/xeriom_mrtg.tmp /etc/mrtg.d/virtual-machines.cfg
+  # Run MRTG three times to gather the stats required to make the page
+  # without errors.
+  /usr/local/bin/mrtg
+  /usr/local/bin/mrtg
+  /usr/local/bin/mrtg
+  indexmaker /etc/mrtg.d/* > /tmp/index.html-mrtg && mv /tmp/index.html-mrtg /var/www/mrtg
+  echo "[MRTG]: Index regenerated. http://monitor.xeriom.net/mrtg/" | /usr/local/sbin/irccat
+else
+  echo "[MRTG]: Configuration unchanged." | /usr/local/sbin/irccat
+  rm ~/xeriom_mrtg.tmp
+fi

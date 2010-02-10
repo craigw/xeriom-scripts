@@ -1,0 +1,3 @@
+#! /bin/bash
+
+ssh control.xeriom.net -p 2202 -l control -i ~/.ssh/control_nagios "/usr/bin/env RAILS_ENV=production ruby /var/www/control.xeriom.net/current/script/mrtg/print_configuration"
