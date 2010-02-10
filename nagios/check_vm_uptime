@@ -1,8 +1,5 @@
 #! /bin/bash
 
-# Add this to your sudoers file:
-#   /usr/sbin/xm list --long [a-z0-9\-\.]+
-
 CRITICAL_UPTIME_BOUNDARY=3600 # 1 hour
 WARNING_UPTIME_BOUNDARY=86400 # 1 day
 
