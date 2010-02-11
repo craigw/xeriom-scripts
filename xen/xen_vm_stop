@@ -1,0 +1,39 @@
+#! /bin/bash
+
+VM_NAME=$1
+XM="/usr/sbin/xm"
+
+if [ -d /var/vm ]; then
+  VM=`echo $VM_NAME |sed 's/\.vm\.xeriom\.net//'`
+else
+  VM=$VM_NAME
+fi
+
+echo -n "Shutting down $VM"
+COUNTER=0
+while true; do
+  echo -n "."
+  $XM shutdown $VM 2>/dev/null 1>/dev/null
+  sleep 10
+  let COUNTER+=1
+  $XM list $VM 2>/dev/null 1>/dev/null
+  [ "$?" != "0" ] && break
+  if [ "$COUNTER" = "6" ]; then
+    echo " FAILED"
+    echo -n "Killing $VM"
+    KILL_COUNT=0
+    while true; do
+      echo -n "."
+      $XM destroy $VM 2>/dev/null 1>/dev/null
+      sleep 10
+      let KILL_COUNT+=1
+      $XM list $VM 2>/dev/null 1>/dev/null
+      [ "$?" != "0" ] && break
+      if [ "$KILL_COUNT" = "3" ]; then
+        echo " FAILED"
+        echo "Could not shutdown $VM. Bailing."
+        exit 2
+      fi
+    done
+  fi
+done

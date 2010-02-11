@@ -1,0 +1,14 @@
+#! /bin/bash
+
+VM_NAME=$1
+XM="/usr/sbin/xm"
+
+if [ -d /var/vm ]; then
+  VM=`echo $VM_NAME |sed 's/\.vm\.xeriom\.net//'`
+  VM_CONF="/var/vm/${VM}.conf"
+else
+  VM=$VM_NAME
+  VM_CONF="/etc/xen/${VM}.cfg"
+fi
+
+exec $XM create $VM_CONF >/dev/null
