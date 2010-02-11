@@ -1,0 +1,23 @@
+#! /usr/bin/env ruby
+
+hostname = proc{ |v| v.gsub(/\.vm\.xeriom\.net$/, '') }
+running_vms = `sudo /usr/sbin/xm list`.strip.split(/\n/)
+running_vms.map! { |line| line.split(/\s+/) }
+running_vms.reject! { |line| line[1] =~ /^0|ID$/ }
+running_vms.map! { |line| line[0] }
+running_vms.map!(&hostname)
+wanted_vms = ARGV[0].to_s.split(/,/).map(&hostname)
+    
+missing_vms = (wanted_vms - running_vms)
+if missing_vms.any?
+  puts "CRITICAL: missing virtual machines #{missing_vms.join(', ')}"
+  exit 2
+end
+
+extra_vms = (running_vms - wanted_vms)
+if extra_vms.any?
+  puts "CRITICAL: extra virtual machines #{extra_vms.join(', ')}"
+  exit 2                       
+end
+
+puts "OKAY: running #{running_vms.join(', ')}"

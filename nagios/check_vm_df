@@ -1,0 +1,50 @@
+#! /usr/bin/env bash
+
+CRITICAL_USE=90
+WARNING_USE=80
+
+if [ -d /var/vm ]; then
+  VM_DEVICE_DIR="/var/vm/store"
+  VM=`echo $1 |sed 's/\.vm\.xeriom\.net//'`
+  VM_DEVICE="${VM_DEVICE_DIR}/$VM.img"
+else
+  VM_DEVICE_DIR="/dev/`hostname |cut -f 1 -d .`"
+  VM=$1
+  VM_DEVICE="${VM_DEVICE_DIR}/$VM-disk"
+fi
+
+if [ ! -e $VM_DEVICE ]; then
+  echo "DISK / UNKNOWN: Couldn't find $VM_DEVICE"
+  exit 3
+fi
+                               
+FREE=`tune2fs -l $VM_DEVICE |grep 'Free blocks:' |awk '{ print $3 }'`
+if [ "0" != "$?" ]; then
+  echo "DISK / UNKNOWN: Couldn't get free block count (command failed)"
+  exit 3
+elif [ -z $FREE ]; then
+  echo "DISK / UNKNOWN: Couldn't get free block count (no output)"
+  exit 3
+fi
+
+TOTAL=`tune2fs -l $VM_DEVICE |grep 'Block count:' |awk '{ print $3 }'`
+if [ "0" != "$?" ]; then
+  echo "DISK / UNKNOWN: Couldn't get total block count (command failed)"
+  exit 3
+elif [ -z $TOTAL ]; then
+  echo "DISK / UNKNOWN: Couldn't get total block count (no output)"
+  exit 3
+fi
+
+USAGE=$((100 - ($FREE * 100 / $TOTAL)))
+
+if [ $USAGE -gt $CRITICAL_USE ]; then
+  echo "DISK / CRITICAL: ${USAGE}% used"
+  exit 2
+elif [ $USAGE -gt $WARNING_USE ]; then
+  echo "DISK / WARNING: ${USAGE}% used"
+  exit 1
+else
+  echo "DISK / OKAY: ${USAGE}% used"
+  exit 0
+fi
