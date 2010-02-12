@@ -1,0 +1,46 @@
+#! /usr/bin/env bash
+
+if [ -d /var/vm ]; then
+  VM_DEVICE_DIR="/var/vm/store"
+  VM=`echo $1 |sed 's/\.vm\.xeriom\.net//'`
+  VM_DEVICE="${VM_DEVICE_DIR}/$VM.img"
+else
+  VM_DEVICE_DIR="/dev/`hostname |cut -f 1 -d .`"
+  VM=$1
+  VM_DEVICE="${VM_DEVICE_DIR}/$VM-disk"
+fi
+
+if [ ! -e $VM_DEVICE ]; then
+  echo "FSCK UNKNOWN: Couldn't find $VM_DEVICE"
+  exit 3
+fi
+
+FSCK_AFTER=`tune2fs -l $VM_DEVICE |grep 'Next check after:' | cut -f 4- -d ' '`
+if [ "0" != "$?" ]; then
+  echo "FSCK UNKNOWN: Couldn't get next check deadline (command failed)"
+  exit 3
+elif [ -z "$FSCK_AFTER" ]; then
+  echo "FSCK UNKNOWN: Couldn't get next check deadline (no output)"
+  exit 3
+fi
+
+NOW=`date +%s`
+FSCK_DEADLINE=`date --date "$FSCK_AFTER" +%s`
+FSCK_DUE=$(($FSCK_DEADLINE - $NOW))
+FSCK_CENTIDAYS=$((($FSCK_DUE * 100) / 86400))
+
+if [ $FSCK_DEADLINE -lt $NOW ]; then
+  OVERDUE_DAYS=`echo $((0 - $FSCK_CENTIDAYS)) | sed 's/\([0-9][0-9]\)$/.\1/g'`
+  echo "FSCK CRITICAL: fsck due $OVERDUE_DAYS days ago"
+  exit 2
+else
+  FORTNIGHT_FROM_NOW=$(($NOW + 1209600))
+  FSCK_DAYS=`echo $FSCK_CENTIDAYS | sed 's/\([0-9][0-9]\)$/.\1/g'`
+  if [ $FSCK_DEADLINE -lt $FORTNIGHT_FROM_NOW ]; then
+    echo "FSCK WARNING: Next fsck due in $FSCK_DAYS days"
+    exit 1
+  else
+    echo "FSCK OKAY: Next fsck due in $FSCK_DAYS days"
+    exit 0
+  fi
+fi
