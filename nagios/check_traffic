@@ -28,8 +28,9 @@ AVG_BYTES_OUT=`rrdtool fetch /var/www/mrtg/${SERVER}_traffic.rrd AVERAGE -r 300 
 
 AVG_BITS_IN=$((AVG_BYTES_IN * 8))
 AVG_BITS_OUT=$((AVG_BYTES_OUT * 8))
+AGE=$(($NOW - $LAST_MOD))
+SUMMARY="I:${AVG_BITS_IN}b/s O:${AVG_BITS_OUT}b/s A:${AGE}s"
 
-SUMMARY="I:${AVG_BITS_IN} | O:${AVG_BITS_OUT} (bits/s)"
 if [ "$AVG_BITS_IN" -gt "$AVG_BITS_IN_CRITICAL" -o "$AVG_BITS_OUT" -gt "$AVG_BITS_OUT_CRITICAL" ]; then
   echo "TRAFFIC CRITICAL: $SUMMARY"
   exit 2
