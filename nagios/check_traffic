@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VM=$1
-RRD="/var/www/mrtg/${VM}_traffic.rrd"
+SERVER=$1
+RRD="/var/www/mrtg/${SERVER}_traffic.rrd"
 AVG_BITS_IN_CRITICAL=40000000
 AVG_BITS_OUT_CRITICAL=40000000
 AVG_BITS_IN_WARNING=20000000
@@ -23,8 +23,8 @@ if [ "$LAST_MOD" -lt "$STALE_MOD" ]; then
   exit 1
 fi
 
-AVG_BYTES_IN=`rrdtool fetch /var/www/mrtg/${VM}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $2 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
-AVG_BYTES_OUT=`rrdtool fetch /var/www/mrtg/${VM}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $3 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
+AVG_BYTES_IN=`rrdtool fetch /var/www/mrtg/${SERVER}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $2 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
+AVG_BYTES_OUT=`rrdtool fetch /var/www/mrtg/${SERVER}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $3 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
 
 AVG_BITS_IN=$((AVG_BYTES_IN * 8))
 AVG_BITS_OUT=$((AVG_BYTES_OUT * 8))
