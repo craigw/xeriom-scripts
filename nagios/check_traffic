@@ -1,0 +1,42 @@
+#!/bin/bash
+
+VM=$1
+RRD="/var/www/mrtg/${VM}_traffic.rrd"
+AVG_BITS_IN_CRITICAL=40000000
+AVG_BITS_OUT_CRITICAL=40000000
+AVG_BITS_IN_WARNING=20000000
+AVG_BITS_OUT_WARNING=20000000
+PERIOD="26h"
+
+if [ ! -e $RRD ]; then
+  echo "TRAFFIC UNKNOWN: Couldn't find database at $RRD"
+  exit 3
+fi
+
+LAST_MOD_DATE=`stat -c"%z" $RRD`
+LAST_MOD=$(date --date="$LAST_MOD_DATE" +%s)
+NOW=$(date +%s)
+STALE_MOD=$(($NOW - 600))
+
+if [ "$LAST_MOD" -lt "$STALE_MOD" ]; then
+  echo "TRAFFIC WARNING: Data is stale. Last updated at $LAST_MOD_DATE"
+  exit 1
+fi
+
+AVG_BYTES_IN=`rrdtool fetch /var/www/mrtg/${VM}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $2 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
+AVG_BYTES_OUT=`rrdtool fetch /var/www/mrtg/${VM}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $3 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
+
+AVG_BITS_IN=$((AVG_BYTES_IN * 8))
+AVG_BITS_OUT=$((AVG_BYTES_OUT * 8))
+
+SUMMARY="I:${AVG_BITS_IN} | O:${AVG_BITS_OUT} (bits/s)"
+if [ "$AVG_BITS_IN" -gt "$AVG_BITS_IN_CRITICAL" -o "$AVG_BITS_OUT" -gt "$AVG_BITS_OUT_CRITICAL" ]; then
+  echo "TRAFFIC CRITICAL: $SUMMARY"
+  exit 2
+elif [ "$AVG_BITS_IN" -gt "$AVG_BITS_IN_CRITICAL" -o "$AVG_BITS_OUT" -gt "$AVG_BITS_OUT_CRITICAL" ]; then
+echo "TRAFFIC WARNING: $SUMMARY"
+  exit 1
+else
+  echo "TRAFFIC OKAY: $SUMMARY"
+  exit 0
+fi
