@@ -1,0 +1,26 @@
+#! /usr/bin/env ruby
+
+require 'rubygems'
+require 'json'
+require 'smqueue'
+
+report = SMQueue(:host => "mq.xeriom.net", :name => "/topic/xeriom.traffic", :adapter => :StompAdapter)
+
+rrds = Dir["/var/www/mrtg/**/*.rrd"]
+rrds.each do |rrd|
+  hostname = File.basename(rrd).split(/_/)[0].strip
+  last_update = %x[rrdtool lastupdate #{rrd}]
+  last_update.strip!
+  data = last_update.split(/\n/)[-1]
+  data.gsub!(/:/, '')
+  time_t, traffic_in, traffic_out = data.split(/ /).map { |d| d.to_i }
+
+  message = {
+    :hostname => hostname,
+    :time_t => time_t,
+    :in => traffic_in,
+    :out => traffic_out
+  }
+
+  report.put message.to_json, "content-type" => "application/json"
+end
