@@ -26,6 +26,11 @@ fi
 AVG_BYTES_IN=`rrdtool fetch /var/www/mrtg/${SERVER}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $2 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
 AVG_BYTES_OUT=`rrdtool fetch /var/www/mrtg/${SERVER}_traffic.rrd AVERAGE -r 300 --start=e-$PERIOD --end=now-300 |grep -v nan |grep -v '^$' |grep -v 'ds' |awk '{ print $3 }' |xargs ruby -e 'puts (ARGV.dup.inject(0) { |a,b| a+b.to_f }) / ARGV.size' |sed 's/\..*//g'`
 
+if [ "$AVG_BYTES_IN" -eq "0" -o "$AVG_BYTES_OUT" -eq "0" ]; then
+  echo "TRAFFIC CRITICAL: Data not being collected properly."
+  exit 2
+fi
+
 AVG_BITS_IN=$((AVG_BYTES_IN * 8))
 AVG_BITS_OUT=$((AVG_BYTES_OUT * 8))
 AGE=$(($NOW - $LAST_MOD))
